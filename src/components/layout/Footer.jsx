@@ -80,7 +80,7 @@ const Footer = () => {
               <li>
                 GitHub:{" "}
                 <a
-                  href="https://github.com/BoBa2005"
+                  href="https://github.com/vol-iln"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"

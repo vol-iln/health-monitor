@@ -14,7 +14,7 @@ const ThresholdSettings = () => {
     
     // Дефолтні глобальні налаштування
     return {
-      pulse: { min: 60, max: 100 },
+      pulse: { min: 60, max: 90 },
       pressure: { 
         systolicMin: 90, 
         systolicMax: 140,
@@ -46,7 +46,7 @@ const ThresholdSettings = () => {
   const handleReset = () => {
     if (window.confirm('Скинути всі порогові значення до стандартних?')) {
       const defaultSettings = {
-        pulse: { min: 60, max: 100 },
+        pulse: { min: 60, max: 90 },
         pressure: { 
           systolicMin: 90, 
           systolicMax: 140,

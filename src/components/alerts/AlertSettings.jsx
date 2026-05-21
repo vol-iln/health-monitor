@@ -13,7 +13,7 @@ const AlertSettings = () => {
     }
     
     return {
-      pulse: { enabled: true, min: 60, max: 100 },
+      pulse: { enabled: true, min: 60, max: 90 },
       pressure: { 
         enabled: true, 
         systolicMin: 90, 
@@ -46,7 +46,7 @@ const AlertSettings = () => {
   const handleReset = () => {
     if (window.confirm('Скинути всі налаштування до стандартних значень?')) {
       const defaultSettings = {
-        pulse: { enabled: true, min: 60, max: 100 },
+        pulse: { enabled: true, min: 60, max: 90 },
         pressure: { 
           enabled: true, 
           systolicMin: 90, 

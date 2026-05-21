@@ -5,8 +5,9 @@ import { calculateBMI, getBMICategory, calculateAge } from '../../utils/calculat
 import StatsCard from './StatsCard';
 import QuickActions from './QuickActions';
 import { TrendingUp, Activity, AlertTriangle, CheckCircle } from 'lucide-react';
+import HealthRadarWidget from './HealthRadarWidget';
 
-const Dashboard = ({ onNavigate }) => {
+  const Dashboard = ({ onNavigate }) => {
   const { userData } = useAuth();
   const { healthData } = useHealthData();
 
@@ -135,6 +136,11 @@ const Dashboard = ({ onNavigate }) => {
         <QuickActions onNavigate={onNavigate} />
       </div>
 
+{/* НОВИЙ БЛОК: Аналітика */}
+      <div className="w-full">
+        <HealthRadarWidget />
+
+      </div>
       {/* Інструкції */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">

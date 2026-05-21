@@ -4,7 +4,9 @@ export const HEALTH_DATA_TYPES = {
   TEMPERATURE: 'temperature',
   WEIGHT: 'weight',
   BLOOD_SUGAR: 'blood_sugar',
-  OXYGEN: 'oxygen'
+  OXYGEN: 'oxygen',
+  SLEEP: 'sleep',
+  SPORT: 'sport'
 };
 
 export const HEALTH_METRICS = {
@@ -13,7 +15,7 @@ export const HEALTH_METRICS = {
     icon: '💓',
     unit: 'уд/хв',
     color: 'red',
-    normalRange: { min: 60, max: 100 },
+    normalRange: { min: 60, max: 90 },
     chartColor: '#ef4444'
   },
   pressure: {
@@ -55,6 +57,20 @@ export const HEALTH_METRICS = {
     color: 'cyan',
     normalRange: { min: 95, max: 100 },
     chartColor: '#06b6d4'
+  },
+  sleep: {
+    name: 'Сон',
+    icon: '🌙',
+    unit: 'год',
+    color: 'indigo', 
+    chartColor: '#6366f1'
+  },
+  sport: {
+    name: 'Активність',
+    icon: '🏃‍♂️',
+    unit: 'хв',
+    color: 'emerald',
+    chartColor: '#10b981'
   }
 };
 

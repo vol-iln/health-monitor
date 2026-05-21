@@ -17,6 +17,7 @@ import Footer from './components/layout/Footer';
 import Sidebar from './components/layout/Sidebar';
 import ProfileSettings from './components/profile/ProfileSettings';
 import Dashboard from './components/dashboard/Dashboard';
+import NutritionWidget from './components/dashboard/NutritionWidget';
 
 const MainApp = () => {
   const { currentUser, userData } = useAuth();
@@ -88,6 +89,9 @@ const MainApp = () => {
           {activeTab === 'admin' && <AdminDashboard />}
           {activeTab === 'settings' && <ProfileSettings />}
           {activeTab === 'home' && <Dashboard onNavigate={setActiveTab} />}
+          {activeTab === 'nutrition' && (
+            <div className="max-w-3xl mx-auto"><NutritionWidget /></div>
+          )}
         </main>
       </div>
       

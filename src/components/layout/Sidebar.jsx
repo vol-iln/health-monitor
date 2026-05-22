@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { userData } = useAuth();
 
-  // Повернули твої унікальні градієнти для кожного пункту
   const menuItems = [
     { id: 'home', name: 'Головна', icon: Home, description: 'Огляд', gradient: 'from-blue-500 to-blue-600' },
     { id: 'health-data', name: 'Показники', icon: Activity, description: 'Дані здоров\'я', gradient: 'from-red-500 to-pink-600' },
@@ -20,8 +19,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   ];
 
   return (
-    <aside className="w-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/60 dark:border-slate-800 min-h-[calc(100vh-64px)] sticky top-16 z-30 transition-colors duration-300">
-      <nav className="p-4 space-y-2">
+    <aside className="w-64 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-r border-slate-200/60 dark:border-slate-800 h-[calc(100vh-64px)] overflow-y-auto sticky top-16 z-30 transition-colors duration-300 custom-scrollbar">
+      {/* Додано pb-10 для комфортного відступу внизу при скролі */}
+      <nav className="p-4 pb-10 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

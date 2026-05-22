@@ -18,15 +18,13 @@ const ProfileSettings = () => {
   const [phoneNumber, setPhoneNumber] = useState(userData?.phoneNumber || '');
   const [loading, setLoading] = useState(false);
 
-  // Стан для доступу лікаря (беремо з бази, за замовчуванням true)
   const [shareWithDoctors, setShareWithDoctors] = useState(userData?.shareWithDoctors ?? true);
 
   // --- ОБРОБНИКИ ---
 
   const handleToggleShare = async () => {
     const newValue = !shareWithDoctors;
-    setShareWithDoctors(newValue); // Міняємо візуально відразу для швидкості
-    
+    setShareWithDoctors(newValue); 
     try {
       // Записуємо в базу даних Firebase
       await updateDoc(doc(db, 'users', currentUser.uid), {

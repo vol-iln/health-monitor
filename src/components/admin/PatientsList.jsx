@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const sendTelegramAlert = async (chatId, message) => {
   if (!chatId) return; 
-  const botToken = '8679627854:AAGxL1V-FcVfcaqqG1MGMcQ7yOzlh0lV6NQ'; 
+  const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; 
   const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
   try {
     await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: message }) });

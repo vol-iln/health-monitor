@@ -63,7 +63,7 @@ const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="https://github.com/vol-iln" target="_blank" rel="noopener noreferrer" className="flex items-center group hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
+                <a href="https://github.com/vol-iln/health-monitor" target="_blank" rel="noopener noreferrer" className="flex items-center group hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
                   <Github className="w-4 h-4 mr-2.5 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   health-monitor
                 </a>

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { X, Send, Filter } from 'lucide-react';
+import { X, Send, Filter, CalendarDays, Activity } from 'lucide-react';
 import { HEALTH_METRICS } from '../../utils/constants';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import toast from 'react-hot-toast';
-import Button from '../common/Button';
 import { formatDataForTelegram } from '../../utils/exportUtils';
 
 const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
@@ -13,7 +12,7 @@ const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     type: 'all',
-    period: 'week' // 'week', 'month', 'all'
+    period: 'week' 
   });
 
   if (!isOpen) return null;
@@ -23,7 +22,6 @@ const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
     try {
       if (!userData?.doctorId) {
         toast.error('У вас не підключений лікар!');
-        setLoading(false);
         return;
       }
 
@@ -31,14 +29,12 @@ const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
       const doctorSnap = await getDoc(doc(db, 'users', userData.doctorId));
       if (!doctorSnap.exists()) {
         toast.error('Не вдалося знайти лікаря.');
-        setLoading(false);
         return;
       }
 
       const doctorData = doctorSnap.data();
       if (!doctorData.telegramId) {
         toast.error('У вашого лікаря не підключений Telegram!');
-        setLoading(false);
         return;
       }
 
@@ -47,12 +43,16 @@ const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
       
       if (!message) {
         toast.error('За обраний період немає жодних записів!');
-        setLoading(false);
         return;
       }
 
-      // 3. Відправляємо в Телеграм
-      const botToken = '8679627854:AAGxL1V-FcVfcaqqG1MGMcQ7yOzlh0lV6NQ';
+      const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        toast.error('Помилка системи: Не налаштовано Telegram бота');
+        console.error("Токен не знайдено в .env");
+        return;
+      }
+
       const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
       
       const response = await fetch(url, {
@@ -68,82 +68,108 @@ const ShareWithDoctorModal = ({ isOpen, onClose, data }) => {
         toast.success('Звіт успішно відправлено лікарю в Telegram! 🚀');
         onClose();
       } else {
-        throw new Error('Помилка API');
+        throw new Error('Помилка API Телеграму');
       }
 
     } catch (error) {
       console.error(error);
-      toast.error('Не вдалося відправити звіт');
+      toast.error('Не вдалося відправити звіт. Перевірте налаштування бота.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-md w-full border border-slate-200/60 dark:border-slate-800 overflow-hidden transform transition-all">
         
         {/* Шапка */}
-        <div className="bg-blue-600 p-6 text-white flex items-center justify-between">
-          <h2 className="text-xl font-bold flex items-center">
-            <Send className="w-5 h-5 mr-2" /> Відправити лікарю
+        <div className="bg-blue-600 dark:bg-blue-600/90 p-6 flex items-center justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-32 h-32 bg-blue-400/30 rounded-full blur-2xl"></div>
+          
+          <h2 className="text-xl font-bold text-white flex items-center tracking-tight relative z-10">
+            <Send className="w-5 h-5 mr-3" /> Надіслати звіт
           </h2>
-          <button onClick={onClose} className="text-blue-100 hover:text-white transition">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="text-blue-100 hover:text-white transition-colors relative z-10 bg-blue-700/50 hover:bg-blue-700 p-2 rounded-full">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Налаштування */}
-        <div className="p-6 space-y-6">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Оберіть, які саме показники та за який час ви хочете надіслати своєму лікуючому лікарю.
+        <div className="p-8 space-y-8">
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            Оберіть необхідні показники та період для формування детального медичного звіту вашому лікарю.
           </p>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Filter className="w-4 h-4 mr-1 text-blue-500" /> Що відправляємо?
+          <div className="space-y-6">
+            
+            {/* Вибір показника */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center uppercase tracking-wider">
+                <Activity className="w-4 h-4 mr-2 text-blue-500" /> Що відправляємо?
               </label>
-              <select 
-                value={filters.type} 
-                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              >
-                <option value="all">Всі показники</option>
-                {Object.entries(HEALTH_METRICS).map(([key, metric]) => (
-                  <option key={key} value={key}>{metric.icon} {metric.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select 
+                  value={filters.type} 
+                  onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                  className="w-full pl-4 pr-10 py-3.5 appearance-none rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-medium outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all cursor-pointer"
+                >
+                  <option value="all">Всі показники</option>
+                  {Object.entries(HEALTH_METRICS).map(([key, metric]) => (
+                    <option key={key} value={key}>{metric.name}</option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+                  <Filter className="w-4 h-4 text-slate-400" />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">За який період?</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button 
-                  onClick={() => setFilters(prev => ({ ...prev, period: 'week' }))}
-                  className={`py-2 px-1 text-sm rounded-lg border font-medium transition ${filters.period === 'week' ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'}`}
-                >
-                  Тиждень
-                </button>
-                <button 
-                  onClick={() => setFilters(prev => ({ ...prev, period: 'month' }))}
-                  className={`py-2 px-1 text-sm rounded-lg border font-medium transition ${filters.period === 'month' ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'}`}
-                >
-                  Місяць
-                </button>
-                <button 
-                  onClick={() => setFilters(prev => ({ ...prev, period: 'all' }))}
-                  className={`py-2 px-1 text-sm rounded-lg border font-medium transition ${filters.period === 'all' ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' : 'bg-white border-gray-200 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400'}`}
-                >
-                  Ввесь час
-                </button>
+            {/* Вибір періоду */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center uppercase tracking-wider">
+                <CalendarDays className="w-4 h-4 mr-2 text-blue-500" /> За який період?
+              </label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'week', label: 'Тиждень' },
+                  { id: 'month', label: 'Місяць' },
+                  { id: 'all', label: 'Увесь час' }
+                ].map((period) => (
+                  <button 
+                    key={period.id}
+                    onClick={() => setFilters(prev => ({ ...prev, period: period.id }))}
+                    className={`py-2.5 px-2 text-[13px] rounded-xl font-bold transition-all duration-200 ${
+                      filters.period === period.id 
+                        ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 ring-2 ring-blue-500 shadow-sm' 
+                        : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {period.label}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          <Button onClick={handleSend} disabled={loading} fullWidth className="py-3 flex justify-center space-x-2">
-            <Send className="w-5 h-5" /> <span>{loading ? 'Відправка...' : 'Надіслати в Telegram'}</span>
-          </Button>
+          <button 
+            onClick={handleSend} 
+            disabled={loading} 
+            className="w-full py-4 mt-4 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Відправка...
+              </span>
+            ) : (
+              <>
+                <Send className="w-5 h-5" /> 
+                <span>Надіслати в Telegram</span>
+              </>
+            )}
+          </button>
+          
         </div>
       </div>
     </div>

@@ -3,23 +3,53 @@ import { Plus } from 'lucide-react';
 import HealthDataForm from './HealthDataForm';
 import HealthDataList from './HealthDataList';
 import { useHealthData } from '../../contexts/HealthDataContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { doc, getDoc, updateDoc } from 'firebase/firestore'; // ДОДАНО updateDoc
+import { db } from '../../services/firebase';
 import toast from 'react-hot-toast';
 import Button from '../common/Button';
+
+// Функція відправки в Телеграм
+const sendTelegramAlert = async (chatId, message) => {
+  if (!chatId) return;
+  const botToken = '8679627854:AAGxL1V-FcVfcaqqG1MGMcQ7yOzlh0lV6NQ';
+  const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message })
+    });
+  } catch (error) {
+    console.error('Помилка Телеграм:', error);
+  }
+};
 
 const AddHealthData = () => {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const { healthData, addData, deleteData, loading: dataLoading } = useHealthData();
+  const { currentUser, userData } = useAuth();
 
   const handleSubmit = async (data) => {
     setLoading(true);
-    
     const result = await addData(data);
-    
     setLoading(false);
     
     if (result.success) {
-      checkAlert(data);
+      // СИНХРОНІЗАЦІЯ ВАГИ З ПРОФІЛЕМ КОРИСТУВАЧА
+      if (data.type === 'weight') {
+        try {
+          const userRef = doc(db, 'users', currentUser.uid);
+          await updateDoc(userRef, {
+            weight: data.value // Записуємо нову вагу безпосередньо в профіль
+          });
+        } catch (error) {
+          console.error('Не вдалося оновити вагу в профілі користувача:', error);
+        }
+      }
+
+      await checkAlert(data);
       toast.success('Показник успішно додано! 🎉');
       setShowForm(false);
     } else {
@@ -27,7 +57,7 @@ const AddHealthData = () => {
     }
   };
 
-  const checkAlert = (data) => {
+  const checkAlert = async (data) => {
     const savedSettings = localStorage.getItem('alertSettings');
     if (!savedSettings) return;
 
@@ -37,6 +67,7 @@ const AddHealthData = () => {
     if (!setting || !setting.enabled) return;
 
     let isOutOfRange = false;
+    let metricDetails = '';
 
     if (data.type === 'pressure') {
       if (
@@ -44,15 +75,45 @@ const AddHealthData = () => {
         data.diastolic < setting.diastolicMin || data.diastolic > setting.diastolicMax
       ) {
         isOutOfRange = true;
+        metricDetails = `Тиск: ${data.systolic}/${data.diastolic}`;
       }
     } else {
       if (data.value < setting.min || data.value > setting.max) {
         isOutOfRange = true;
+        
+        const metricNames = {
+          pulse: 'Пульс',
+          temperature: 'Температура',
+          weight: 'Вага',
+          blood_sugar: 'Цукор',
+          oxygen: 'Кисень',
+          sleep: 'Сон'
+        };
+        
+        metricDetails = `${metricNames[data.type] || data.type}: ${data.value}`;
       }
     }
 
     if (isOutOfRange) {
       toast.error('⚠️ Увага! Показник виходить за межі норми!', { duration: 5000 });
+      
+      if (userData?.doctorId) {
+        try {
+          const doctorSnap = await getDoc(doc(db, 'users', userData.doctorId));
+          if (doctorSnap.exists()) {
+            const doctorData = doctorSnap.data();
+            
+            if (doctorData.telegramId) {
+              const patientName = userData.name || currentUser.email;
+              const alertMessage = `🚨 КРИТИЧНИЙ ПОКАЗНИК!\nУ пацієнта ${patientName} зафіксовано відхилення від норми.\n\nПоказник: ${metricDetails}\nБудь ласка, перевірте картку пацієнта на сайті.`;
+              
+              await sendTelegramAlert(doctorData.telegramId, alertMessage);
+            }
+          }
+        } catch (error) {
+          console.error('Не вдалося відправити сповіщення лікарю:', error);
+        }
+      }
     }
   };
 

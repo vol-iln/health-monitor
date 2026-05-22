@@ -17,7 +17,6 @@ import { useHealthData } from '../../contexts/HealthDataContext';
 };
 
   const HealthRadarWidget = () => {
-  // Дістаємо РЕАЛЬНІ дані з вашої бази Firebase
   const { healthData } = useHealthData();
 
   // Обчислюємо статистику щоразу, коли змінюються дані
@@ -27,15 +26,15 @@ import { useHealthData } from '../../contexts/HealthDataContext';
     weekAgo.setDate(weekAgo.getDate() - 7);
     const recentData = healthData.filter(item => new Date(item.date || item.createdAt) >= weekAgo);
 
-    // 2. Рахуємо середній сон (тип 'sleep', очікувана норма ~ 8 годин)
+    // 2. Рахуємо середній сон 
     const sleepRecords = recentData.filter(d => d.type === 'sleep');
     const avgSleep = sleepRecords.length 
       ? sleepRecords.reduce((sum, item) => sum + Number(item.value), 0) / sleepRecords.length 
       : 0;
     // Формула: (Середній сон / 8 годин) * 100. Максимум 100 балів.
-    const sleepScore = avgSleep > 0 ? Math.min(Math.round((avgSleep / 8) * 100), 100) : 10; // 10 балів даємо базово, щоб графік не зникав зовсім
+    const sleepScore = avgSleep > 0 ? Math.min(Math.round((avgSleep / 8) * 100), 100) : 10; 
 
-    // 3. Рахуємо середню активність (тип 'sport', очікувана норма ~ 60 хвилин/день)
+    // 3. Рахуємо середню активність 
     const sportRecords = recentData.filter(d => d.type === 'sport');
     const avgSport = sportRecords.length 
       ? sportRecords.reduce((sum, item) => sum + Number(item.value), 0) / sportRecords.length 
@@ -43,7 +42,7 @@ import { useHealthData } from '../../contexts/HealthDataContext';
     // Формула: (Середні хвилини / 60) * 100
     const sportScore = avgSport > 0 ? Math.min(Math.round((avgSport / 60) * 100), 100) : 10;
 
-    // 4. Формуємо масив для графіка (інші показники поки залишаємо статичними або додамо пізніше)
+    // 4. Формуємо масив для графіка
     return [
       { category: 'Кардіо', score: 85, fullMark: 100 }, 
       { category: 'Сон', score: sleepScore, fullMark: 100 }, 
@@ -87,7 +86,7 @@ import { useHealthData } from '../../contexts/HealthDataContext';
           </ResponsiveContainer>
         </div>
 
-        {/* Смарт-інсайти (генеруються автоматично) */}
+        {/* Смарт-інсайти */}
         <div className="w-full md:w-1/2 mt-4 md:mt-0 md:pl-6 space-y-4">
           <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg border border-indigo-100 dark:border-indigo-800/30">
             <h4 className="font-bold text-indigo-900 dark:text-indigo-300 flex items-center space-x-2 mb-2">

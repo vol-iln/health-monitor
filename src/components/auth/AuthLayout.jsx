@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun, HeartPulse } from 'lucide-react';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
 
@@ -15,48 +15,56 @@ const AuthLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-      {/* Кнопка теми */}
-      <div className="fixed top-4 right-4 z-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-500 relative overflow-hidden flex flex-col justify-center">
+      
+      {/* Кнопка теми (мінімалістична) */}
+      <div className="fixed top-6 right-6 z-50">
         <button
           onClick={toggleTheme}
-          className="p-3 rounded-lg bg-white dark:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-200"
+          className="p-3 rounded-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:scale-105 transition-all duration-300"
         >
           {theme === 'light' ? (
-            <Moon className="w-6 h-6 text-gray-700" />
+            <Moon className="w-5 h-5 text-slate-600" strokeWidth={1.5} />
           ) : (
-            <Sun className="w-6 h-6 text-yellow-400" />
+            <Sun className="w-5 h-5 text-amber-400" strokeWidth={1.5} />
           )}
         </button>
       </div>
 
+      {/* Декоративний фон (Солідні розмиті сфери) */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-emerald-100/40 dark:bg-emerald-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[100px] opacity-70 animate-blob"></div>
+        <div className="absolute top-[20%] right-[-10%] w-[35vw] h-[35vw] bg-sky-100/40 dark:bg-sky-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[100px] opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-[-20%] left-[20%] w-[45vw] h-[45vw] bg-indigo-50/50 dark:bg-indigo-900/20 rounded-full mix-blend-multiply dark:mix-blend-lighten filter blur-[120px] opacity-70 animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Контент */}
-      <div className="flex items-center justify-center min-h-screen px-4 py-12">
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-12">
         <div className="w-full max-w-md">
+          
           {/* Логотип */}
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 mb-2">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center p-3 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-500 rounded-2xl mb-4 shadow-sm">
+              <HeartPulse className="w-8 h-8" strokeWidth={2} />
+            </div>
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight mb-2">
               Health Monitor
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Моніторинг здоров'я 🏥
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 tracking-wide uppercase">
+              Особистий медичний кабінет
             </p>
           </div>
 
           {/* Форми */}
-          {isLogin ? (
-            <LoginForm onSwitchToRegister={() => setIsLogin(false)} />
-          ) : (
-            <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
-          )}
+          <div className="transition-all duration-500 ease-in-out">
+            {isLogin ? (
+              <LoginForm onSwitchToRegister={() => setIsLogin(false)} />
+            ) : (
+              <RegisterForm onSwitchToLogin={() => setIsLogin(true)} />
+            )}
+          </div>
+          
         </div>
-      </div>
-
-      {/* Декоративні елементи */}
-      <div className="fixed top-0 left-0 w-full h-full pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-200 dark:bg-blue-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute top-40 right-10 w-72 h-72 bg-purple-200 dark:bg-purple-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-200 dark:bg-pink-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
     </div>
   );

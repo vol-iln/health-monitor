@@ -22,7 +22,7 @@ const ThresholdSettings = () => {
         diastolicMax: 90
       },
       temperature: { min: 36.0, max: 37.5 },
-      weight: { min: 0, max: 0 }, // не використовується
+      weight: { min: 0, max: 0 }, 
       blood_sugar: { min: 3.9, max: 5.5 },
       oxygen: { min: 95, max: 100 }
     };

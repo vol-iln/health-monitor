@@ -143,27 +143,31 @@ const ChartsView = ({
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4">
         <div className="flex flex-wrap gap-2">
           {Object.entries(HEALTH_METRICS).map(([key, metric]) => {
-            const count = groupedData[key]?.length || 0;
-            if (count === 0) return null;
+  const count = groupedData[key]?.length || 0;
+  if (count === 0) return null;
 
-            return (
-              <button
-                key={key}
-                onClick={() => setSelectedMetric(key)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all ${
-                  selectedMetric === key
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg transform scale-105'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
-              >
-                <span className="text-2xl">{metric.icon}</span>
-                <div className="text-left">
-                  <div className="font-semibold">{metric.name}</div>
-                  <div className="text-xs opacity-75">{count} записів</div>
-                </div>
-              </button>
-            );
-          })}
+  // Вибираємо ключ, який хочемо зробити меншим (наприклад, 'weight')
+  const isSmall = key === 'weight'; 
+
+  return (
+    <button
+      key={key}
+      onClick={() => setSelectedMetric(key)}
+      className={`flex items-center space-x-2 transition-all rounded-lg 
+        ${isSmall ? 'px-3 py-2 text-sm' : 'px-4 py-3'} 
+        ${selectedMetric === key
+          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg transform scale-105'
+          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+      }`}
+    >
+      <span className={`${isSmall ? 'text-lg' : 'text-2xl'}`}>{metric.icon}</span>
+      <div className="text-left">
+        <div className="font-semibold">{metric.name}</div>
+        <div className={`${isSmall ? 'text-[10px]' : 'text-xs'} opacity-75`}>{count} записів</div>
+      </div>
+    </button>
+  );
+})}
         </div>
       </div>
 

@@ -1,336 +1,223 @@
 import React, { useState } from 'react';
-import { Shield, Bell, Eye, Trash2, Key } from 'lucide-react';
+import { Shield, Eye, Trash2, Key, MessageCircle, Save, Phone } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteUser, updatePassword } from 'firebase/auth';
-import { doc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, deleteDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import toast from 'react-hot-toast';
 
 const ProfileSettings = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
+  
+  // Стани
   const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [passwordData, setPasswordData] = useState({
-    newPassword: '',
-    confirmPassword: ''
-  });
+  const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
+  const [telegramId, setTelegramId] = useState(userData?.telegramId || '');
+  const [phoneNumber, setPhoneNumber] = useState(userData?.phoneNumber || '');
   const [loading, setLoading] = useState(false);
 
-  const [privacySettings, setPrivacySettings] = useState(() => {
-    const saved = localStorage.getItem('privacySettings');
-    return saved ? JSON.parse(saved) : {
-      shareWithDoctors: false,
-      showInSearch: false,
-      allowAnalytics: true
-    };
-  });
+  // Стан для доступу лікаря (беремо з бази, за замовчуванням true)
+  const [shareWithDoctors, setShareWithDoctors] = useState(userData?.shareWithDoctors ?? true);
 
-  const [notificationSettings, setNotificationSettings] = useState(() => {
-    const saved = localStorage.getItem('notificationSettings');
-    return saved ? JSON.parse(saved) : {
-      emailNotifications: true,
-      alertNotifications: true,
-      weeklyReport: false,
-      monthlyReport: false
-    };
-  });
+  // --- ОБРОБНИКИ ---
 
-  const handlePrivacyChange = (key) => {
-    const newSettings = {
-      ...privacySettings,
-      [key]: !privacySettings[key]
-    };
-    setPrivacySettings(newSettings);
-    localStorage.setItem('privacySettings', JSON.stringify(newSettings));
-    toast.success('Налаштування збережено');
-  };
-
-  const handleNotificationChange = (key) => {
-    const newSettings = {
-      ...notificationSettings,
-      [key]: !notificationSettings[key]
-    };
-    setNotificationSettings(newSettings);
-    localStorage.setItem('notificationSettings', JSON.stringify(newSettings));
-    toast.success('Налаштування збережено');
+  const handleToggleShare = async () => {
+    const newValue = !shareWithDoctors;
+    setShareWithDoctors(newValue); // Міняємо візуально відразу для швидкості
+    
+    try {
+      // Записуємо в базу даних Firebase
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        shareWithDoctors: newValue
+      });
+      toast.success(newValue ? 'Доступ лікарям відкрито 🟢' : 'Доступ лікарям закрито 🔴', { style: { borderRadius: '12px', background: '#1e293b', color: '#fff' } });
+    } catch (error) {
+      console.error(error);
+      toast.error('Помилка збереження налаштувань');
+      setShareWithDoctors(!newValue); // Повертаємо назад, якщо помилка
+    }
   };
 
   const handlePasswordChange = async () => {
-    if (passwordData.newPassword.length < 6) {
-      toast.error('Пароль має бути мінімум 6 символів');
-      return;
-    }
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Паролі не співпадають');
-      return;
-    }
-
+    if (passwordData.newPassword.length < 6) return toast.error('Пароль має бути мінімум 6 символів');
+    if (passwordData.newPassword !== passwordData.confirmPassword) return toast.error('Паролі не співпадають');
+    
     setLoading(true);
-
     try {
       await updatePassword(currentUser, passwordData.newPassword);
       toast.success('Пароль успішно змінено! ✅');
       setPasswordData({ newPassword: '', confirmPassword: '' });
       setShowPasswordChange(false);
     } catch (error) {
-      console.error('Password change error:', error);
-      if (error.code === 'auth/requires-recent-login') {
-        toast.error('Для зміни паролю потрібно повторно увійти в систему');
-      } else {
-        toast.error('Помилка зміни паролю');
-      }
+      if (error.code === 'auth/requires-recent-login') toast.error('Для зміни паролю потрібно повторно увійти в систему');
+      else toast.error('Помилка зміни паролю');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveTelegram = async () => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { telegramId: telegramId });
+      toast.success('Telegram ID успішно збережено!');
+    } catch (error) { toast.error('Не вдалося зберегти налаштування'); }
+    setLoading(false);
+  };
+
+  const handleSavePhone = async () => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { phoneNumber: phoneNumber });
+      toast.success('Номер телефону успішно збережено!');
+    } catch (error) { toast.error('Не вдалося зберегти номер'); }
+    setLoading(false);
   };
 
   const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      '⚠️ ВИ ВПЕВНЕНІ?\n\nВидалення акаунту незворотнє! Будуть видалені:\n- Ваш профіль\n- Всі показники здоров\'я\n- Всі налаштування\n\nВведіть "ВИДАЛИТИ" для підтвердження'
-    );
-
+    const confirmed = window.confirm('⚠️ ВИ ВПЕВНЕНІ?\n\nВидалення акаунту незворотнє! Введіть "ВИДАЛИТИ" для підтвердження');
     if (!confirmed) return;
-
     const confirmText = window.prompt('Введіть "ВИДАЛИТИ" для підтвердження:');
-    
-    if (confirmText !== 'ВИДАЛИТИ') {
-      toast.error('Скасовано');
-      return;
-    }
+    if (confirmText !== 'ВИДАЛИТИ') return toast.error('Скасовано');
 
     setLoading(true);
-
     try {
-      const healthDataQuery = query(
-        collection(db, 'healthData'),
-        where('userId', '==', currentUser.uid)
-      );
+      const healthDataQuery = query(collection(db, 'healthData'), where('userId', '==', currentUser.uid));
       const healthDataSnapshot = await getDocs(healthDataQuery);
+      const deletePromises = healthDataSnapshot.docs.map(d => deleteDoc(d.ref));
       
-      const deletePromises = healthDataSnapshot.docs.map(doc => 
-        deleteDoc(doc.ref)
-      );
       await Promise.all(deletePromises);
-
       await deleteDoc(doc(db, 'users', currentUser.uid));
-
       await deleteUser(currentUser);
-
       toast.success('Акаунт видалено');
-    } catch (error) {
-      console.error('Delete account error:', error);
-      if (error.code === 'auth/requires-recent-login') {
-        toast.error('Для видалення акаунту потрібно повторно увійти в систему');
-      } else {
-        toast.error('Помилка видалення акаунту');
-      }
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { toast.error('Помилка видалення акаунту'); } 
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Налаштування
-        </h2>
-        <p className="text-gray-600 dark:text-gray-400">
-          Керуйте налаштуваннями приватності та безпеки
-        </p>
+    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-10">
+      <div className="mb-8">
+        <h2 className="text-3xl font-semibold text-slate-900 dark:text-white mb-2 tracking-tight">Налаштування</h2>
+        <p className="text-slate-500 dark:text-slate-400">Керуйте приватністю, контактами та безпекою вашого акаунту</p>
       </div>
 
-      {/* Безпека */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      {/* ПРИВАТНІСТЬ (Новий робочий блок) */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
         <div className="flex items-center space-x-3 mb-6">
-          <Shield className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            Безпека
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* Зміна паролю */}
-          <div>
-            {!showPasswordChange ? (
-              <Button
-                onClick={() => setShowPasswordChange(true)}
-                variant="secondary"
-                className="flex items-center space-x-2"
-              >
-                <Key className="w-4 h-4" />
-                <span>Змінити пароль</span>
-              </Button>
-            ) : (
-              <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-4">
-                <Input
-                  label="Новий пароль"
-                  type="password"
-                  name="newPassword"
-                  value={passwordData.newPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                  placeholder="Мінімум 6 символів"
-                />
-                <Input
-                  label="Підтвердіть пароль"
-                  type="password"
-                  name="confirmPassword"
-                  value={passwordData.confirmPassword}
-                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                  placeholder="Повторіть пароль"
-                />
-                <div className="flex space-x-3">
-                  <Button
-                    onClick={() => {
-                      setShowPasswordChange(false);
-                      setPasswordData({ newPassword: '', confirmPassword: '' });
-                    }}
-                    variant="secondary"
-                    fullWidth
-                  >
-                    Скасувати
-                  </Button>
-                  <Button
-                    onClick={handlePasswordChange}
-                    disabled={loading}
-                    fullWidth
-                  >
-                    {loading ? 'Зміна...' : 'Змінити пароль'}
-                  </Button>
-                </div>
-              </div>
-            )}
+          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
+            <Eye className="w-6 h-6" strokeWidth={2} />
           </div>
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Приватність</h3>
+        </div>
+        
+        <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+          <div className="flex-1 pr-4">
+            <h4 className="font-semibold text-slate-900 dark:text-white mb-1.5">Ділитися даними з лікарем</h4>
+            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              Якщо увімкнено, ваш лікуючий лікар зможе переглядати ваші показники здоров'я та аналітику. Якщо вимкнено — доступ буде закрито.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer mt-1">
+            <input type="checkbox" checked={shareWithDoctors} onChange={handleToggleShare} className="sr-only peer" />
+            <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-500"></div>
+          </label>
         </div>
       </div>
 
-      {/* Приватність */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      {/* БЕЗПЕКА ТА ПАРОЛЬ */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
         <div className="flex items-center space-x-3 mb-6">
-          <Eye className="w-6 h-6 text-green-600 dark:text-green-400" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            Приватність
-          </h3>
+          <div className="p-2.5 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl text-indigo-600 dark:text-indigo-400">
+            <Shield className="w-6 h-6" strokeWidth={2} />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Безпека</h3>
         </div>
-
-        <div className="space-y-4">
-          <SettingToggle
-            label="Ділитися даними з лікарями"
-            description="Дозволити лікарям переглядати ваші показники здоров'я"
-            checked={privacySettings.shareWithDoctors}
-            onChange={() => handlePrivacyChange('shareWithDoctors')}
-          />
-
-          <SettingToggle
-            label="Показувати в пошуку"
-            description="Ваш профіль буде видимий іншим користувачам"
-            checked={privacySettings.showInSearch}
-            onChange={() => handlePrivacyChange('showInSearch')}
-          />
-
-          <SettingToggle
-            label="Дозволити аналітику"
-            description="Допомогти покращити додаток, надаючи анонімні дані використання"
-            checked={privacySettings.allowAnalytics}
-            onChange={() => handlePrivacyChange('allowAnalytics')}
-          />
-        </div>
+        
+        {!showPasswordChange ? (
+          <button onClick={() => setShowPasswordChange(true)} className="flex items-center space-x-3 px-6 py-3.5 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-200 font-medium transition-colors border border-slate-200/60 dark:border-slate-700">
+            <Key className="w-5 h-5 text-slate-400" />
+            <span>Змінити пароль</span>
+          </button>
+        ) : (
+          <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/60 dark:border-slate-700 space-y-4 max-w-md">
+            <Input label="Новий пароль" type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))} placeholder="Мінімум 6 символів" />
+            <Input label="Підтвердіть пароль" type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))} placeholder="Повторіть пароль" />
+            <div className="flex space-x-3 pt-2">
+              <Button onClick={() => { setShowPasswordChange(false); setPasswordData({ newPassword: '', confirmPassword: '' }); }} className="bg-slate-200 text-slate-700 hover:bg-slate-300" fullWidth>Скасувати</Button>
+              <Button onClick={handlePasswordChange} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white" fullWidth>{loading ? 'Збереження...' : 'Зберегти'}</Button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Сповіщення */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <Bell className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-            Сповіщення
-          </h3>
+      {/* КОНТАКТИ: ТЕЛЕФОН */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2.5 bg-sky-50 dark:bg-sky-500/10 rounded-xl text-sky-600 dark:text-sky-400">
+            <Phone className="w-6 h-6" strokeWidth={2} />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Номер телефону</h3>
         </div>
-
-        <div className="space-y-4">
-          <SettingToggle
-            label="Email сповіщення"
-            description="Отримувати сповіщення на електронну пошту"
-            checked={notificationSettings.emailNotifications}
-            onChange={() => handleNotificationChange('emailNotifications')}
-          />
-
-          <SettingToggle
-            label="Попередження про показники"
-            description="Сповіщення коли показники виходять за межі норми"
-            checked={notificationSettings.alertNotifications}
-            onChange={() => handleNotificationChange('alertNotifications')}
-          />
-
-          <SettingToggle
-            label="Тижневий звіт"
-            description="Отримувати звіт про показники кожного тижня"
-            checked={notificationSettings.weeklyReport}
-            onChange={() => handleNotificationChange('weeklyReport')}
-          />
-
-          <SettingToggle
-            label="Місячний звіт"
-            description="Отримувати звіт про показники кожного місяця"
-            checked={notificationSettings.monthlyReport}
-            onChange={() => handleNotificationChange('monthlyReport')}
-          />
-        </div>
-      </div>
-
-      {/* Небезпечна зона */}
-      <div className="bg-red-50 dark:bg-red-900 rounded-xl shadow-lg p-6 border-2 border-red-200 dark:border-red-700">
-        <div className="flex items-center space-x-3 mb-6">
-          <Trash2 className="w-6 h-6 text-red-600 dark:text-red-400" />
-          <h3 className="text-xl font-bold text-red-900 dark:text-red-100">
-            Небезпечна зона
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          <p className="text-red-800 dark:text-red-200 text-sm">
-            Після видалення акаунту всі ваші дані будуть безповоротно втрачені. 
-            Ця дія незворотня.
-          </p>
-          
-          <Button
-            onClick={handleDeleteAccount}
-            variant="danger"
-            disabled={loading}
-            className="flex items-center justify-center space-x-2"
-          >
-            <Trash2 className="w-4 h-4" />
-            <span>{loading ? 'Видалення...' : 'Видалити акаунт назавжди'}</span>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-2xl">
+          Вкажіть актуальний номер, щоб лікар міг оперативно зв'язатися з вами в екстрених випадках.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 max-w-lg">
+          <div className="flex-1">
+            <Input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+380..." />
+          </div>
+          <Button onClick={handleSavePhone} disabled={loading} className="py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 flex items-center justify-center space-x-2">
+            <Save className="w-4 h-4" />
+            <span>Зберегти</span>
           </Button>
         </div>
       </div>
-    </div>
-  );
-};
 
-// Компонент перемикача
-const SettingToggle = ({ label, description, checked, onChange }) => {
-  return (
-    <div className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-      <div className="flex-1">
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
-          {label}
-        </h4>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          {description}
-        </p>
+      {/* КОНТАКТИ: TELEGRAM */}
+      <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2.5 bg-blue-50 dark:bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400">
+            <MessageCircle className="w-6 h-6" strokeWidth={2} />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Telegram Сповіщення</h3>
+        </div>
+        <div className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-2xl space-y-2 leading-relaxed">
+          <p>Підключіть свій Telegram, щоб отримувати миттєві сповіщення від лікаря або попередження про критичні показники.</p>
+          <ul className="list-disc pl-5 space-y-1 mt-2">
+            <li>Знайдіть бота <strong className="text-slate-700 dark:text-slate-300">@getmyid_bot</strong> та скопіюйте цифри (Your ID).</li>
+            <li>Вставте їх сюди і збережіть.</li>
+            <li>Запустіть нашого медичного бота <strong className="text-slate-700 dark:text-slate-300">@health_monitors_bot</strong>.</li>
+          </ul>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 max-w-lg">
+          <div className="flex-1">
+            <Input type="text" value={telegramId} onChange={(e) => setTelegramId(e.target.value)} placeholder="Наприклад: 424281746" />
+          </div>
+          <Button onClick={handleSaveTelegram} disabled={loading} className="py-3 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center space-x-2">
+            <Save className="w-4 h-4" />
+            <span>Зберегти</span>
+          </Button>
+        </div>
       </div>
-      
-      <label className="relative inline-flex items-center cursor-pointer ml-4">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={onChange}
-          className="sr-only peer"
-        />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-      </label>
+
+      {/* НЕБЕЗПЕЧНА ЗОНА */}
+      <div className="bg-rose-50/50 dark:bg-rose-950/20 rounded-[2rem] border border-rose-200/60 dark:border-rose-900/50 p-8">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="p-2.5 bg-rose-100 dark:bg-rose-900/40 rounded-xl text-rose-600 dark:text-rose-400">
+            <Trash2 className="w-6 h-6" strokeWidth={2} />
+          </div>
+          <h3 className="text-xl font-semibold text-rose-900 dark:text-rose-300 tracking-tight">Небезпечна зона</h3>
+        </div>
+        <p className="text-rose-700 dark:text-rose-400/80 text-sm mb-6">
+          Після видалення акаунту всі ваші медичні записи, історія та налаштування будуть безповоротно втрачені. Цю дію неможливо скасувати.
+        </p>
+        <button onClick={handleDeleteAccount} disabled={loading} className="flex items-center justify-center space-x-2 px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors">
+          <Trash2 className="w-5 h-5" />
+          <span>{loading ? 'Видалення...' : 'Видалити акаунт назавжди'}</span>
+        </button>
+      </div>
+
     </div>
   );
 };

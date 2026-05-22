@@ -5,7 +5,7 @@ import { HealthDataProvider } from './contexts/HealthDataContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import AuthLayout from './components/auth/AuthLayout';
 import AddHealthData from './components/health-data/AddHealthData';
-import { Moon, Sun, LogOut } from 'lucide-react';
+import { Moon, Sun, LogOut, HeartPulse } from 'lucide-react';
 import { logoutUser } from './services/authService';
 import toast from 'react-hot-toast';
 import Analytics from './components/analytics/Analytics';
@@ -18,6 +18,8 @@ import Sidebar from './components/layout/Sidebar';
 import ProfileSettings from './components/profile/ProfileSettings';
 import Dashboard from './components/dashboard/Dashboard';
 import NutritionWidget from './components/dashboard/NutritionWidget';
+import PatientsList from './components/admin/PatientsList'; 
+import MyDoctor from './components/profile/MyDoctor'; 
 
 const MainApp = () => {
   const { currentUser, userData } = useAuth();
@@ -33,40 +35,54 @@ const MainApp = () => {
     }
   };
 
+  const userName = userData?.name || currentUser?.email || 'User';
+  const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=10b981&color=fff&rounded=true&bold=true`;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300 flex flex-col">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-lg sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-<div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <h1 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">
+      
+      <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/60 dark:border-gray-800 sticky top-0 z-40 transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center justify-between">
+            
+            <div className="flex items-center space-x-3">
+              <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-xl text-emerald-500">
+                <HeartPulse className="w-6 h-6" strokeWidth={2.5} />
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block tracking-tight">
                 Health Monitor
               </h1>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <span className="hidden sm:block text-gray-700 dark:text-gray-300 font-medium">
-                {userData?.name || currentUser?.email}
-              </span>
+            <div className="flex items-center space-x-3 sm:space-x-5">
+              
+              <div className="flex items-center space-x-3 bg-gray-50 dark:bg-gray-800 py-1.5 px-1.5 pr-4 rounded-full border border-gray-200/50 dark:border-gray-700">
+                <img src={avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full shadow-sm" />
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[120px]">
+                  {userName}
+                </span>
+              </div>
               
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="p-2.5 rounded-full text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors"
               >
                 {theme === 'light' ? (
-                  <Moon className="w-5 h-5 text-gray-700" />
+                  <Moon className="w-5 h-5" strokeWidth={2} />
                 ) : (
-                  <Sun className="w-5 h-5 text-yellow-400" />
+                  <Sun className="w-5 h-5 text-yellow-400" strokeWidth={2} />
                 )}
               </button>
 
+              <div className="h-6 w-px bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 transition-colors"
+                className="flex items-center space-x-2 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 transition-colors group p-2 sm:p-0"
+                title="Вийти"
               >
-                <LogOut className="w-4 h-4" />
-                <span className="hidden sm:block">Вийти</span>
+                <span className="text-sm font-medium hidden sm:block">Вийти</span>
+                <LogOut className="w-5 h-5 group-hover:translate-x-1 transition-transform" strokeWidth={2} />
               </button>
             </div>
           </div>
@@ -79,14 +95,14 @@ const MainApp = () => {
           setActiveTab={setActiveTab}
         />
         
-        {/* Main Content */}  
         <main className="flex-1 p-8">
           {activeTab === 'health-data' && <AddHealthData />}
           {activeTab === 'charts' && <Analytics />}
           {activeTab === 'alerts' && <Alerts />}
           {activeTab === 'export' && <ExportData />}
           {activeTab === 'profile' && <UserProfile />}
-          {activeTab === 'admin' && <AdminDashboard />}
+          {activeTab === 'admin' && <PatientsList />}
+          {activeTab === 'my-doctor' && <MyDoctor />}
           {activeTab === 'settings' && <ProfileSettings />}
           {activeTab === 'home' && <Dashboard onNavigate={setActiveTab} />}
           {activeTab === 'nutrition' && (
@@ -100,7 +116,6 @@ const MainApp = () => {
   );
 };
 
-// Компонент головної сторінки
 const HomeContent = ({ userData }) => {
   return (
     <div className="space-y-6">
@@ -181,19 +196,17 @@ const HomeContent = ({ userData }) => {
   );
 };
 
-// Компонент що вирішує що показувати
 const AppContent = () => {
   const { currentUser } = useAuth();
   return currentUser ? <MainApp /> : <AuthLayout />;
 };
 
-// Головний компонент
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <HealthDataProvider>
-          <AppContent />		
+          <AppContent />    
         </HealthDataProvider>
         <Toaster 
           position="top-right"

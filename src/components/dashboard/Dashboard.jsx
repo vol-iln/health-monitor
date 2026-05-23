@@ -4,7 +4,7 @@ import { useHealthData } from '../../contexts/HealthDataContext';
 import { calculateBMI, getBMICategory, calculateAge } from '../../utils/calculations';
 import StatsCard from './StatsCard';
 import QuickActions from './QuickActions';
-import { TrendingUp, Activity, AlertTriangle, CheckCircle, ShieldCheck } from 'lucide-react';
+import { TrendingUp, ShieldCheck } from 'lucide-react';
 import HealthRadarWidget from './HealthRadarWidget';
 import SOSButton from './SOSButton';
 
@@ -26,12 +26,14 @@ const Dashboard = ({ onNavigate }) => {
   const userName = userData?.name || 'Користувач';
   const firstLetter = userName.charAt(0).toUpperCase();
 
+  // Перевіряємо, чи ввімкнена кнопка SOS у налаштуваннях профілю пацієнта (за замовчуванням true)
+  const isSOSButtonEnabled = userData?.enableSOSButton !== false;
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto animate-fade-in relative pb-10">
       
       {/* 1. ПРИВІТАННЯ (Преміум картка) */}
       <div className="relative overflow-hidden bg-slate-900 rounded-[2.5rem] p-8 sm:p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)]">
-        {/* Декоративні розмиті сфери */}
         <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-96 h-96 bg-emerald-500/20 rounded-full blur-[80px] pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-80 h-80 bg-sky-500/20 rounded-full blur-[80px] pointer-events-none"></div>
         
@@ -51,39 +53,16 @@ const Dashboard = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 2. ОСНОВНА СТАТИСТИКА (Карточки зверху) */}
+      {/* 2. ОСНОВНА СТАТИСТИКА */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatsCard
-          icon="📊"
-          title="Всього записів"
-          value={totalRecords}
-          color="blue"
-          description="Загальна кількість"
-        />
-        <StatsCard
-          icon="📅"
-          title="За тиждень"
-          value={weekRecords}
-          color="green"
-          description="Останні 7 днів"
-        />
+        <StatsCard icon="📊" title="Всього записів" value={totalRecords} color="blue" description="Загальна кількість" />
+        <StatsCard icon="📅" title="За тиждень" value={weekRecords} color="green" description="Останні 7 днів" />
+        
         {age && userData?.role === 'user' && (
-          <StatsCard
-            icon="🎂"
-            title="Вік"
-            value={age}
-            unit="років"
-            color="purple"
-          />
+          <StatsCard icon="🎂" title="Вік" value={age} unit="років" color="purple" />
         )}
         {bmi && userData?.role === 'user' && (
-          <StatsCard
-            icon="⚖️"
-            title="BMI"
-            value={bmi}
-            color={bmiCategory.color}
-            description={bmiCategory.text}
-          />
+          <StatsCard icon="⚖️" title="BMI" value={bmi} color={bmiCategory.color} description={bmiCategory.text} />
         )}
       </div>
 
@@ -131,7 +110,7 @@ const Dashboard = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* 4. ШВИДКІ ДІЇ ТА ОСТАННІ ЗАПИСИ */}
+        {/* 4. ШВИДКІ ДІЇ */}
         <div className="h-full">
           <QuickActions onNavigate={onNavigate} />
         </div>
@@ -142,7 +121,7 @@ const Dashboard = ({ onNavigate }) => {
         <HealthRadarWidget />
       </div>
       
-      {/* 6. ІНСТРУКЦІЇ (Швидкий старт) */}
+      {/* 6. ІНСТРУКЦІЇ */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-colors duration-300">
         <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-6 tracking-tight flex items-center space-x-2">
           <TrendingUp className="w-5 h-5 text-indigo-500" strokeWidth={2.5} />
@@ -154,35 +133,28 @@ const Dashboard = ({ onNavigate }) => {
             <span className="text-2xl mt-0.5 drop-shadow-sm">1️⃣</span>
             <div>
               <h4 className="font-semibold text-slate-800 dark:text-white mb-1.5">Додайте дані</h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Перейдіть до розділу "Показники" та додайте свої перші дані
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Перейдіть до розділу "Показники" та додайте свої перші дані</p>
             </div>
           </div>
-
           <div className="flex items-start space-x-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
             <span className="text-2xl mt-0.5 drop-shadow-sm">2️⃣</span>
             <div>
               <h4 className="font-semibold text-slate-800 dark:text-white mb-1.5">Аналізуйте</h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Переглядайте графіки та аналізуйте свої життєві тенденції
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Переглядайте графіки та аналізуйте свої життєві тенденції</p>
             </div>
           </div>
-
           <div className="flex items-start space-x-4 p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
             <span className="text-2xl mt-0.5 drop-shadow-sm">3️⃣</span>
             <div>
               <h4 className="font-semibold text-slate-800 dark:text-white mb-1.5">Налаштуйте</h4>
-              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                Встановіть сповіщення для безпечного контролю показників
-              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">Встановіть сповіщення для безпечного контролю показників</p>
             </div>
           </div>
         </div>
       </div>
 
-      <SOSButton />
+      {/* 🚨 Рендеримо кнопку SOS ТІЛЬКИ якщо вона не вимкнена в налаштуваннях пацієнта */}
+      {isSOSButtonEnabled && <SOSButton />}
       
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Eye, Trash2, Key, MessageCircle, Save, Phone } from 'lucide-react';
+import { Shield, Eye, Trash2, Key, MessageCircle, Save, Phone, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { deleteUser, updatePassword } from 'firebase/auth';
 import { doc, deleteDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
@@ -11,6 +11,9 @@ import toast from 'react-hot-toast';
 const ProfileSettings = () => {
   const { currentUser, userData } = useAuth();
   
+  const isAdmin = userData?.role === 'admin';
+  const isPatient = !isAdmin;
+
   // Стани
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [passwordData, setPasswordData] = useState({ newPassword: '', confirmPassword: '' });
@@ -18,25 +21,50 @@ const ProfileSettings = () => {
   const [phoneNumber, setPhoneNumber] = useState(userData?.phoneNumber || '');
   const [loading, setLoading] = useState(false);
 
+  // Стани перемикачів (зберігаємо з БД, за замовчуванням true)
   const [shareWithDoctors, setShareWithDoctors] = useState(userData?.shareWithDoctors ?? true);
+  const [enableSOSButton, setEnableSOSButton] = useState(userData?.enableSOSButton ?? true);
+  const [enableSOSNotifications, setEnableSOSNotifications] = useState(userData?.enableSOSNotifications ?? true);
 
-  // --- ОБРОБНИКИ ---
+  // --- ОБРОБНИКИ ПЕРЕМИКАЧІВ ---
 
   const handleToggleShare = async () => {
     const newValue = !shareWithDoctors;
     setShareWithDoctors(newValue); 
     try {
-      // Записуємо в базу даних Firebase
-      await updateDoc(doc(db, 'users', currentUser.uid), {
-        shareWithDoctors: newValue
-      });
+      await updateDoc(doc(db, 'users', currentUser.uid), { shareWithDoctors: newValue });
       toast.success(newValue ? 'Доступ лікарям відкрито 🟢' : 'Доступ лікарям закрито 🔴', { style: { borderRadius: '12px', background: '#1e293b', color: '#fff' } });
     } catch (error) {
-      console.error(error);
       toast.error('Помилка збереження налаштувань');
-      setShareWithDoctors(!newValue); // Повертаємо назад, якщо помилка
+      setShareWithDoctors(!newValue);
     }
   };
+
+  const handleToggleSOSButton = async () => {
+    const newValue = !enableSOSButton;
+    setEnableSOSButton(newValue); 
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { enableSOSButton: newValue });
+      toast.success(newValue ? 'Кнопку SOS увімкнено 🚨' : 'Кнопку SOS приховано 🔕');
+    } catch (error) {
+      toast.error('Помилка збереження');
+      setEnableSOSButton(!newValue);
+    }
+  };
+
+  const handleToggleSOSNotifications = async () => {
+    const newValue = !enableSOSNotifications;
+    setEnableSOSNotifications(newValue); 
+    try {
+      await updateDoc(doc(db, 'users', currentUser.uid), { enableSOSNotifications: newValue });
+      toast.success(newValue ? 'SOS сповіщення увімкнено 🔊' : 'SOS сповіщення вимкнено 🔇');
+    } catch (error) {
+      toast.error('Помилка збереження');
+      setEnableSOSNotifications(!newValue);
+    }
+  };
+
+  // --- ІНШІ ОБРОБНИКИ ---
 
   const handlePasswordChange = async () => {
     if (passwordData.newPassword.length < 6) return toast.error('Пароль має бути мінімум 6 символів');
@@ -101,27 +129,69 @@ const ProfileSettings = () => {
         <p className="text-slate-500 dark:text-slate-400">Керуйте приватністю, контактами та безпекою вашого акаунту</p>
       </div>
 
-      {/* ПРИВАТНІСТЬ (Новий робочий блок) */}
+      {/* ПРИВАТНІСТЬ (Лише для пацієнтів) */}
+      {isPatient && (
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
+              <Eye className="w-6 h-6" strokeWidth={2} />
+            </div>
+            <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Приватність</h3>
+          </div>
+          
+          <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+            <div className="flex-1 pr-4">
+              <h4 className="font-semibold text-slate-900 dark:text-white mb-1.5">Ділитися даними з лікарем</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Якщо увімкнено, ваш лікуючий лікар зможе переглядати ваші показники здоров'я та аналітику. Якщо вимкнено — доступ буде закрито.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" checked={shareWithDoctors} onChange={handleToggleShare} className="sr-only peer" />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* ЕКСТРЕНІ НАЛАШТУВАННЯ SOS */}
       <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8">
         <div className="flex items-center space-x-3 mb-6">
-          <div className="p-2.5 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
-            <Eye className="w-6 h-6" strokeWidth={2} />
+          <div className="p-2.5 bg-rose-50 dark:bg-rose-500/10 rounded-xl text-rose-600 dark:text-rose-400">
+            <AlertTriangle className="w-6 h-6" strokeWidth={2} />
           </div>
-          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Приватність</h3>
+          <h3 className="text-xl font-semibold text-slate-800 dark:text-white tracking-tight">Екстрені налаштування (SOS)</h3>
         </div>
         
-        <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
-          <div className="flex-1 pr-4">
-            <h4 className="font-semibold text-slate-900 dark:text-white mb-1.5">Ділитися даними з лікарем</h4>
-            <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Якщо увімкнено, ваш лікуючий лікар зможе переглядати ваші показники здоров'я та аналітику. Якщо вимкнено — доступ буде закрито.
-            </p>
+        {isPatient && (
+          <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+            <div className="flex-1 pr-4">
+              <h4 className="font-semibold text-slate-900 dark:text-white mb-1.5">Відображати кнопку SOS</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Показувати велику червону кнопку SOS на екрані. Вимкніть, якщо ви випадково її натискаєте або вона вам не потрібна.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" checked={enableSOSButton} onChange={handleToggleSOSButton} className="sr-only peer" />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-blue-500"></div>
+            </label>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer mt-1">
-            <input type="checkbox" checked={shareWithDoctors} onChange={handleToggleShare} className="sr-only peer" />
-            <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-emerald-500"></div>
-          </label>
-        </div>
+        )}
+
+        {isAdmin && (
+          <div className="flex items-start justify-between p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-colors">
+            <div className="flex-1 pr-4">
+              <h4 className="font-semibold text-slate-900 dark:text-white mb-1.5">Отримувати SOS сповіщення</h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Якщо вимкнено, ви не будете отримувати тривожні повідомлення в Telegram, коли ваші пацієнти натискають кнопку SOS.
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer mt-1">
+              <input type="checkbox" checked={enableSOSNotifications} onChange={handleToggleSOSNotifications} className="sr-only peer" />
+              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-blue-500"></div>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* БЕЗПЕКА ТА ПАРОЛЬ */}
@@ -143,7 +213,7 @@ const ProfileSettings = () => {
             <Input label="Новий пароль" type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))} placeholder="Мінімум 6 символів" />
             <Input label="Підтвердіть пароль" type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))} placeholder="Повторіть пароль" />
             <div className="flex space-x-3 pt-2">
-              <Button onClick={() => { setShowPasswordChange(false); setPasswordData({ newPassword: '', confirmPassword: '' }); }} className="bg-slate-200 text-slate-700 hover:bg-slate-300" fullWidth>Скасувати</Button>
+              <Button onClick={() => { setShowPasswordChange(false); setPasswordData({ newPassword: '', confirmPassword: '' }); }} className="bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600" fullWidth>Скасувати</Button>
               <Button onClick={handlePasswordChange} disabled={loading} className="bg-indigo-600 hover:bg-indigo-700 text-white" fullWidth>{loading ? 'Збереження...' : 'Зберегти'}</Button>
             </div>
           </div>

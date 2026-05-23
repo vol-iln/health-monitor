@@ -4,10 +4,7 @@ import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Responsi
 import { Brain, Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
 import { useHealthData } from '../../contexts/HealthDataContext';
 
-/**
- * Кастомний компонент для підказки (Tooltip) при наведенні на графік.
- * Перевизначає стандартний стиль Recharts під дизайн-систему проєкту.
- */
+
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     return (

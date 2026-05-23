@@ -9,7 +9,6 @@ const Alerts = () => {
   return (
     <div className="space-y-8 animate-fade-in max-w-5xl mx-auto pb-10">
       
-      {/* ПРЕМІАЛЬНІ ВКЛАДКИ */}
       <div className="bg-slate-100/50 dark:bg-slate-800/50 p-1.5 rounded-2xl flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 border border-slate-200/50 dark:border-slate-700/50 w-full sm:w-fit mx-auto shadow-sm">
         <button
           onClick={() => setActiveTab('alerts')}

@@ -8,7 +8,6 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import toast from 'react-hot-toast';
 
-// Безпечна функція відправки в Телеграм
 const sendTelegramAlert = async (chatId, message) => {
   if (!chatId) return;
   const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;

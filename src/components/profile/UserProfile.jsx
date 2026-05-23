@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Edit2, Mail, Calendar, Ruler, Weight, Save, X, ShieldCheck, Info, Fingerprint } from 'lucide-react';
+import { User, Edit2, Mail, Calendar, Ruler, Weight, Save, X, ShieldCheck, Fingerprint } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
@@ -35,7 +35,6 @@ const UserProfile = () => {
         updatedAt: new Date().toISOString()
       };
 
-      // Зберігаємо медичні дані ТІЛЬКИ якщо це пацієнт
       if (isPatient) {
         updateData.height = Number(formData.height);
         updateData.weight = Number(formData.weight);
@@ -90,6 +89,9 @@ const UserProfile = () => {
   const bmi = calculateBMI();
   const bmiCategory = getBMICategory(bmi);
 
+  // Визначаємо клас ширини для лівої колонки залежно від ролі
+  const leftColumnClass = isPatient ? "xl:col-span-8 space-y-6" : "xl:col-span-12 space-y-6";
+
   return (
     <div className="space-y-8 animate-fade-in max-w-6xl mx-auto pb-10">
       
@@ -121,8 +123,8 @@ const UserProfile = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         
-        {/* ЛІВА КОЛОНКА (Розширюється на весь екран, якщо це лікар) */}
-        <div className={`space-y-6 ${isPatient ? 'xl:col-span-8' : 'xl:col-span-12'}`}>
+        {/* ЛІВА КОЛОНКА (Або єдина, якщо це лікар) */}
+        <div className={leftColumnClass}>
           <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 sm:p-10 h-full">
             
             {/* Аватар та ім'я */}
@@ -214,7 +216,6 @@ const UserProfile = () => {
               isPatient && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in">
                   
-                  {/* ВИПРАВЛЕНО КОЛЬОРИ ДЛЯ ТЕМНОЇ ТЕМИ */}
                   <div className="flex flex-col p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50">
                     <div className="flex items-center space-x-2 mb-3 opacity-80 text-slate-700 dark:text-slate-300">
                       <Ruler className="w-4 h-4" />
@@ -266,7 +267,6 @@ const UserProfile = () => {
           <div className="xl:col-span-4 space-y-6">
             <div className={`bg-white dark:bg-slate-900 rounded-[2.5rem] border ${bmiCategory.text !== '-' ? `border-${bmiCategory.color}-200 dark:border-${bmiCategory.color}-900/50` : 'border-slate-200/60 dark:border-slate-800'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 overflow-hidden relative transition-colors duration-500 h-full flex flex-col`}>
               
-              {/* Фонове світіння для BMI */}
               {bmiCategory.text !== '-' && (
                 <div className={`absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 bg-${bmiCategory.color}-500/10 rounded-full blur-[40px] pointer-events-none`}></div>
               )}

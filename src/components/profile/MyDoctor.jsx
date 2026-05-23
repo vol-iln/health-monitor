@@ -7,7 +7,6 @@ import { useHealthData } from '../../contexts/HealthDataContext';
 import toast from 'react-hot-toast';
 import ShareWithDoctorModal from '../dashboard/ShareWithDoctorModal'; 
 
-// Безпечна відправка через Telegram
 const sendTelegramAlert = async (chatId, message) => {
   if (!chatId) return;
   const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN; 

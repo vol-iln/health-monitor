@@ -10,7 +10,6 @@ const SOSButton = () => {
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Показуємо підказку при завантаженні компонента і ховаємо через 10 секунд
   useEffect(() => {
     if (userData && userData.role === 'user') {
       setShowTooltip(true);
@@ -21,7 +20,6 @@ const SOSButton = () => {
     }
   }, [userData]);
 
-  // 1. ХОВАЄМО КНОПКУ, ЯКЩО ПАЦІЄНТ ВИМКНУВ ЇЇ У НАЛАШТУВАННЯХ
   if (!userData || userData.role !== 'user' || userData.enableSOSButton === false) {
     return null;
   }
@@ -41,10 +39,58 @@ const SOSButton = () => {
     }
   };
 
+  const getCoordinates = () => {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        resolve(null);
+        return;
+      }
+      const timeoutId = setTimeout(() => { resolve(null); }, 5000);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          clearTimeout(timeoutId);
+          resolve({ 
+            lat: position.coords.latitude, 
+            lng: position.coords.longitude,
+            accuracy: Math.round(position.coords.accuracy) 
+          });
+        },
+        (error) => {
+          console.warn('Помилка геоданих:', error);
+          clearTimeout(timeoutId);
+          resolve(null);
+        },
+        { enableHighAccuracy: true, timeout: 4500, maximumAge: 0 }
+      );
+    });
+  };
+
+  // ОТРИМАННЯ АДРЕСИ ЗА КООРДИНАТАМИ 
+  const getAddressFromCoords = async (lat, lng) => {
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+      const data = await response.json();
+      
+      if (data && data.address) {
+        const city = data.address.city || data.address.town || data.address.village || '';
+        const street = data.address.road || '';
+        const house = data.address.house_number || '';
+        
+        let fullAddress = '';
+        if (city) fullAddress += `м. ${city}`;
+        if (street) fullAddress += (fullAddress ? ', ' : '') + `вул. ${street}`;
+        if (house) fullAddress += ` ${house}`;
+        
+        return fullAddress || null;
+      }
+    } catch (error) {
+      console.warn('Не вдалося отримати адресу:', error);
+    }
+    return null;
+  };
+
   const handleSOSClick = async () => {
     setLoading(true);
-    
-    // Якщо підказка ще висіла, ховаємо її при натисканні
     setShowTooltip(false);
 
     try {
@@ -63,30 +109,41 @@ const SOSButton = () => {
 
       const doctorData = doctorSnap.data();
 
-      // 2. ПЕРЕВІРЯЄМО, ЧИ ЛІКАР ДОЗВОЛИВ ОТРИМУВАТИ SOS-СПОВІЩЕННЯ
       if (doctorData.enableSOSNotifications === false) {
-        toast.error('Лікар тимчасово вимкнув прийом екстрених сповіщень. Терміново телефонуйте 103!', { 
-          duration: 8000,
-          icon: '🚑'
-        });
+        toast.error('Лікар тимчасово вимкнув прийом екстрених сповіщень. Терміново телефонуйте 103!', { duration: 8000, icon: '🚑' });
         setLoading(false);
         return;
       }
 
       if (doctorData.telegramId) {
+        toast('Визначаємо локацію та відправляємо виклик...', { icon: '📡' });
+
+        const coords = await getCoordinates();
         const patientName = userData.name || currentUser.email;
-        const message = `🚨 SOS! ЕКСТРЕНИЙ ВИКЛИК! 🚨\n\nПацієнт ${patientName} щойно натиснув кнопку SOS!\n\nМожливо, потрібна швидка допомога. Терміново зв'яжіться з пацієнтом!`;
+        const phoneInfo = userData.phoneNumber ? `\n📞 Телефон: ${userData.phoneNumber}` : '';
+        
+        let locationText = '';
+        if (coords) {
+          // Отримуємо назву вулиці та міста
+          const address = await getAddressFromCoords(coords.lat, coords.lng);
+          const mapsLink = `http://maps.google.com/maps?q=${coords.lat},${coords.lng}`;
+          
+          locationText = `\n\n📍 Локація пацієнта:\n`;
+          if (address) {
+            locationText += `🏠 Приблизна адреса: ${address}\n`;
+          }
+          locationText += `🗺 Карта: ${mapsLink}`;
+        } else {
+          locationText = `\n\n📍 Локація: Геодані недоступні (немає дозволу або вимкнено GPS).`;
+        }
+
+        const message = `🚨 SOS! ЕКСТРЕНИЙ ВИКЛИК! 🚨\n\nПацієнт ${patientName} щойно натиснув кнопку SOS на сайті!${phoneInfo}\n\nМожливо, потрібна швидка допомога. Терміново зв'яжіться з пацієнтом!${locationText}`;
         
         await sendTelegramAlert(doctorData.telegramId, message);
         
         toast.success('Екстрене сповіщення миттєво відправлено лікарю! 🚑 Залишайтеся на місці.', { 
           duration: 8000,
-          style: {
-            background: '#fee2e2',
-            color: '#991b1b',
-            border: '1px solid #f87171',
-            fontWeight: 'bold'
-          }
+          style: { background: '#fee2e2', color: '#991b1b', border: '1px solid #f87171', fontWeight: 'bold' }
         });
       } else {
         toast.error('У вашого лікаря не підключений Telegram. Терміново телефонуйте 103!');
